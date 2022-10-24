@@ -76,7 +76,8 @@ def make_rect(point_1, point_2, r_height, r_depth):
 
 	#calculate rotation matrix for rect
 	rotation_matrix =\
-		rotation_matrix_from_vectors(np.array([rect_length,0,0]), point_2)
+		rotation_matrix_from_vectors(
+			np.array([rect_length,0,0]), point_2 - point_1)
 	#print(rotation_matrix)
 	
 	# if there is a rotation, rotate and translate to fix rotation offset
@@ -98,13 +99,6 @@ def make_rect(point_1, point_2, r_height, r_depth):
 			t = point_1 - left_2
 		elif point_1[0] > point_2[0]:
 			t = point_1 - right_2
-		else: # point_1[0] = point_2[0]
-			if point_1[0] > 0:
-				t = point_1 - left_2
-			elif point_b[0] < 0:
-				t = point_1 - right_2
-			else: # point_1[0] = point_2[0] == 0
-				t = np.array([0,0,0])
 		
 		print(t)
 		mesh_rect_display.translate(tuple(t))
