@@ -20,6 +20,7 @@ def main():
 	mesh_bottom_teeth = o3d.io.read_triangle_mesh(config.BOTTOM_TEETH_STL)
 
 	mesh_sphere_origin = o3d.geometry.TriangleMesh.create_sphere(radius=0.2)
+	mesh_sphere_origin.paint_uniform_color([1, 0.706, 0])
 	mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5, 
 			origin=[-2, -2, -2])
 
@@ -49,14 +50,18 @@ def create_bottom_teeth(p1, p2, p3, p4, p5):
 	height = vg.euclidean_distance(p1, p5)
 	print(height)
 
-	# TODO Subtract rectangular prism to cut off
-	# TODO Why is cylinder jagged
-	# TODO What is the starting position of cylinders? - center at 0,0,0; top facing z direction
 
+	# starting position of cylinders? - center at 0,0,0; top facing z direction
 	bottom_teeth = (cylinder(r=rad, h=height, center=True, segments=segments) -
 			cylinder(r=rad-diff, h=height, center=True, segments=segments))
 
-	# figure out how much to cut off
+	# translate so that top of cylinder is flush with xy axis
+	bottom_teeth = translate([0,0,-height/2])(
+		bottom_teeth
+		)
+
+	# subtract half of teeth to make half circle
+	bottom_teeth = bottom_teeth - translate([0,-rad,-height/2])(cube([rad*2, rad*2, height], center=True))
 	
 
 
