@@ -10,11 +10,22 @@ from config.config import Config
 config = Config()
 
 def main():
+	# bt = bottom teeth
+	'''
 	bt1 = np.array([0, 1, 0])
 	bt2 = np.array([-1, 0, 0])
 	bt3 = np.array([1, 0, 0])
 	bt4 = np.array([0, 0.5, 0])
 	bt5 = np.array([0, 1, -1])
+	'''
+
+	bt1 = np.array([-1, 1, -1])
+	bt2 = np.array([-1, -1, -1])
+	bt3 = np.array([1, 1, 1])
+	bt4 = bt1*0.8#np.array([-0.5, 0.5, -0.5])
+	bt5 = np.array([-0.8, 1, -1.2])
+
+
 
 	create_bottom_teeth(bt1, bt2, bt3, bt4, bt5)
 	mesh_bottom_teeth = o3d.io.read_triangle_mesh(config.BOTTOM_TEETH_STL)
@@ -33,7 +44,8 @@ def create_bottom_teeth(p1, p2, p3, p4, p5):
 	p1, p2, p3 are center, then 2 edges of front (outer edge) of teeth
 	p4 is right behind p1 at center of teeth on inner edge, to calculate depth
 	p5 is right below p1 on the outer edge, to calculate height
-	Does not return; saves STL in position given in config file to be called in main
+	Does not return an object
+	Instead, saves an STL file in location given in config to be called in main
 	'''
 	segments = 120
 
@@ -61,14 +73,48 @@ def create_bottom_teeth(p1, p2, p3, p4, p5):
 		)
 
 	# subtract half of teeth to make half circle
-	bottom_teeth = bottom_teeth - translate([0,-rad,-height/2])(cube([rad*2, rad*2, height], center=True))
+	bottom_teeth = bottom_teeth - translate([0,-rad,-height/2])(cube([rad*3, rad*2, height*2], center=True))
 	
+	# TODO 
+	# Break rotation into 2 parts
+	print(p2-p3)
+	print((p2+p3)/2)
 
+	# 1
+	# Rotate X unit vector to vector between p2, p3, 
+	# analagous to edges of flat surface of the co-concentric cylinder objects
+	if p1[0] < 0:
+		rad = -rad
+	x_rotation_matrix = rotation_matrix_from_vectors(
+							[rad, 0, 0], p2-p3)
+	x_rotation_angles = rotation_matrix_to_angles(x_rotation_matrix)
+	print(x_rotation_angles)
+	bottom_teeth = rotate(x_rotation_angles)(bottom_teeth)
+	
+	# 2
+	# Rotate Y unit vector to vector from midway point between p2 & p3, to p1
+	original_y_vector = [0, -rad, 0]
+	r = Rotation.from_matrix(x_rotation_matrix)
+	new_y_vector = r.apply(original_y_vector)
+	#print('meow')
+	#print(new_y_vector)
+	y_rotation_matrix = rotation_matrix_from_vectors(
+							new_y_vector, (p1 - (p2+p3)/2))
+	y_rotation_angles = rotation_matrix_to_angles(y_rotation_matrix)
+	print(y_rotation_angles)
+	bottom_teeth = rotate(y_rotation_angles)(bottom_teeth)
+	#bottom_teeth += translate(new_y_vector)(sphere(r=0.25))
 
+	# Translate center of cylinders to midway point between p2 & p3
+	bottom_teeth = translate((p2+p3)/2)(bottom_teeth)
+
+	bottom_teeth += translate(p1)(sphere(r=0.25))
+	bottom_teeth += translate(p2)(sphere(r=0.25))
+	bottom_teeth += translate(p3)(sphere(r=0.25))
+
+	# render and save to SCAD file
 	path = scad_render_to_file(bottom_teeth, config.BOTTOM_TEETH_SCAD)
-
 	sh = '''"''' + str(config.OPENSCAD_EXE) + '''"''' + ' ' + str(config.BOTTOM_TEETH_SCAD) + ' -o ' + str(config.BOTTOM_TEETH_STL)
-
 	exit_code = subprocess.call(sh)
 	return
 
@@ -99,7 +145,7 @@ def rotation_matrix_from_vectors(vec1, vec2):
     return rotation_matrix
 
 def rotation_matrix_to_angles(rotation_matrix):
-	return Rotation.from_matrix(rotation_matrix).as_euler("zyx", degrees=True)
+	return Rotation.from_matrix(rotation_matrix).as_euler("xyz", degrees=True)
 
 if __name__ == "__main__":
 	main()
