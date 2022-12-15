@@ -25,11 +25,19 @@ def main():
 	bt4 = bt1*0.8#np.array([-0.5, 0.5, -0.5])
 	bt5 = np.array([-0.8, 1, -1.2])
 
-	print(vg.euclidean_distance(bt1, bt2))
-	print(vg.euclidean_distance(bt1, bt3))
+	# tt = top teeth
+	tt1 = bt1
+	tt2 = bt2
+	tt3 = bt3
+	tt4 = bt4
+	tt5 = bt5
+	tt6 = -bt1
 
-	create_bottom_teeth(bt1, bt2, bt3, bt4, bt5)
+	create_teeth(bt1, bt2, bt3, bt4, bt5, None) # create bottom teeth
+	#create_teeth(tt1, tt2, tt3, tt4, tt5, tt6) # create top teeth
+	
 	mesh_bottom_teeth = o3d.io.read_triangle_mesh(config.BOTTOM_TEETH_STL)
+	mesh_top_teeth = o3d.io.read_triangle_mesh(config.TOP_TEETH_STL)
 
 	mesh_sphere_origin = o3d.geometry.TriangleMesh.create_sphere(radius=0.2)
 	mesh_sphere_origin.paint_uniform_color([1, 0.706, 0])
@@ -40,14 +48,32 @@ def main():
 		mesh_sphere_origin])
 
 
-def create_bottom_teeth(p1, p2, p3, p4, p5):
+def create_teeth(p1, p2, p3, p4, p5, p6=None):
 	'''
 	p1, p2, p3 are center, then 2 edges of front (outer edge) of teeth
 	p4 is right behind p1 at center of teeth on inner edge, to calculate depth
 	p5 is right below p1 on the outer edge, to calculate height
-	Does not return an object
+	p6 only if top teeth; defines roof of mouth object extending from p1->p6
+	
+	Does NOT return an object
 	Instead, saves an STL file in location given in config to be called in main
 	'''
+	if p6 is None:
+		print('Creating bottom teeth object since p6 == None')
+		TEETH_STL = BOTTOM_TEETH_STL
+		TEETH_SCAD = BOTTOM_TEETH_SCAD
+		isTopTeeth = True
+	else:
+		print('Creating top teeth object since p6 is given')
+		TEETH_STL = TOP_TEETH_STL
+		TEETH_SCAD = TOP_TEETH_SCAD
+		isTopTeeth = False
+
+	print(vg.euclidean_distance(p1, p2))
+	print(vg.euclidean_distance(p1, p3))
+	if vg.euclidean_distance(p1, p2) != vg.euclidean_distance(p1, p3):
+		print('Warning: p2 & p3 are not equidistant from p1!')
+
 	segments = 120
 
 	# calculate center & radius of outer cylinder
@@ -65,27 +91,26 @@ def create_bottom_teeth(p1, p2, p3, p4, p5):
 
 
 	# starting position of cylinders? - center at 0,0,0; top facing z direction
-	bottom_teeth = (cylinder(r=rad, h=height, center=True, segments=segments) -
+	teeth = (cylinder(r=rad, h=height, center=True, segments=segments) -
 			cylinder(r=rad-diff, h=height, center=True, segments=segments))
 
 	# translate so that top of cylinder is flush with xy axis
-	bottom_teeth = translate([0,0,-height/2])(
-		bottom_teeth
+	teeth = translate([0,0,-height/2])(
+		teeth
 		)
 
 	# subtract half of teeth to make half circle
-	bottom_teeth = bottom_teeth - translate([0,-rad,-height/2])(cube([rad*3, rad*2, height*2], center=True))
+	teeth = teeth - translate([0,-rad,-height/2])(cube([rad*3, rad*2, height*2], center=True))
 
 	# scale properly
-	bottom_teeth = scale([vg.euclidean_distance(np.array([0,0,0]), p3)/rad, 
+	teeth = scale([vg.euclidean_distance(np.array([0,0,0]), p3)/rad, 
 						  vg.euclidean_distance(np.array([0,0,0]), p1-(p2+p3)/2)/rad, 
-						  1])(bottom_teeth)
-	
-	# TODO 
-	# Break rotation into 2 parts
-	print(p2-p3)
-	print((p2+p3)/2)
+						  1])(teeth)
 
+	# TODO
+	# Add roof of mouth object if p6 is not None
+	
+	# Break rotation into 2 parts
 	# 1
 	# Rotate X unit vector to vector between p2, p3, 
 	# analagous to edges of flat surface of the co-concentric cylinder objects
@@ -95,7 +120,7 @@ def create_bottom_teeth(p1, p2, p3, p4, p5):
 							[rad, 0, 0], p2-p3)
 	x_rotation_angles = rotation_matrix_to_angles(x_rotation_matrix)
 	print(x_rotation_angles)
-	bottom_teeth = rotate(x_rotation_angles)(bottom_teeth)
+	teeth = rotate(x_rotation_angles)(teeth)
 	
 	# 2
 	# Rotate Y unit vector to vector from midway point between p2 & p3, to p1
@@ -107,19 +132,22 @@ def create_bottom_teeth(p1, p2, p3, p4, p5):
 							new_y_vector, (p1 - (p2+p3)/2))
 	y_rotation_angles = rotation_matrix_to_angles(y_rotation_matrix)
 	print(y_rotation_angles)
-	bottom_teeth = rotate(y_rotation_angles)(bottom_teeth)
+	teeth = rotate(y_rotation_angles)(teeth)
 
 
 	# Translate center of cylinders to midway point between p2 & p3
-	bottom_teeth = translate((p2+p3)/2)(bottom_teeth)
+	teeth = translate((p2+p3)/2)(teeth)
 
-	bottom_teeth += translate(p1)(sphere(r=0.25))
-	bottom_teeth += translate(p2)(sphere(r=0.25))
-	bottom_teeth += translate(p3)(sphere(r=0.25))
+	# visulize p1, p2, p3
+	'''
+	teeth += translate(p1)(sphere(r=0.25))
+	teeth += translate(p2)(sphere(r=0.25))
+	teeth += translate(p3)(sphere(r=0.25))
+	'''
 
 	# render and save to SCAD file
-	path = scad_render_to_file(bottom_teeth, config.BOTTOM_TEETH_SCAD)
-	sh = '''"''' + str(config.OPENSCAD_EXE) + '''"''' + ' ' + str(config.BOTTOM_TEETH_SCAD) + ' -o ' + str(config.BOTTOM_TEETH_STL)
+	path = scad_render_to_file(teeth, config.TEETH_SCAD)
+	sh = '''"''' + str(config.OPENSCAD_EXE) + '''"''' + ' ' + str(config.TEETH_SCAD) + ' -o ' + str(config.TEETH_STL)
 	exit_code = subprocess.call(sh)
 	return
 
