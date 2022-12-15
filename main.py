@@ -10,6 +10,8 @@ from config.config import Config
 config = Config()
 
 def main():
+	# test data here
+
 	# bt = bottom teeth
 	'''
 	bt1 = np.array([0, 1, 0])
@@ -37,7 +39,7 @@ def main():
 	#create_teeth(tt1, tt2, tt3, tt4, tt5, tt6) # create top teeth
 	
 	mesh_bottom_teeth = o3d.io.read_triangle_mesh(config.BOTTOM_TEETH_STL)
-	mesh_top_teeth = o3d.io.read_triangle_mesh(config.TOP_TEETH_STL)
+	#mesh_top_teeth = o3d.io.read_triangle_mesh(config.TOP_TEETH_STL)
 
 	mesh_sphere_origin = o3d.geometry.TriangleMesh.create_sphere(radius=0.2)
 	mesh_sphere_origin.paint_uniform_color([1, 0.706, 0])
@@ -60,14 +62,14 @@ def create_teeth(p1, p2, p3, p4, p5, p6=None):
 	'''
 	if p6 is None:
 		print('Creating bottom teeth object since p6 == None')
-		TEETH_STL = BOTTOM_TEETH_STL
-		TEETH_SCAD = BOTTOM_TEETH_SCAD
-		isTopTeeth = True
+		TEETH_STL = config.BOTTOM_TEETH_STL
+		TEETH_SCAD = config.BOTTOM_TEETH_SCAD
+		isTopTeeth = False
 	else:
 		print('Creating top teeth object since p6 is given')
-		TEETH_STL = TOP_TEETH_STL
-		TEETH_SCAD = TOP_TEETH_SCAD
-		isTopTeeth = False
+		TEETH_STL = config.TOP_TEETH_STL
+		TEETH_SCAD = config.TOP_TEETH_SCAD
+		isTopTeeth = True
 
 	print(vg.euclidean_distance(p1, p2))
 	print(vg.euclidean_distance(p1, p3))
@@ -107,8 +109,15 @@ def create_teeth(p1, p2, p3, p4, p5, p6=None):
 						  vg.euclidean_distance(np.array([0,0,0]), p1-(p2+p3)/2)/rad, 
 						  1])(teeth)
 
-	# TODO
-	# Add roof of mouth object if p6 is not None
+	# Add roof of mouth object if TopTeeth object
+	if isTopTeeth:
+		roof_height = height/10
+		teeth += translate([0,0, -roof_height/2])(
+			cube([vg.euclidean_distance(np.array([0,0,0]), p3)*3,
+				  vg.euclidean_distance(np.array([0,0,0]), p1-(p2+p3)/2)*2,
+				  roof_height], 
+				 center=True)
+			)
 	
 	# Break rotation into 2 parts
 	# 1
@@ -146,8 +155,8 @@ def create_teeth(p1, p2, p3, p4, p5, p6=None):
 	'''
 
 	# render and save to SCAD file
-	path = scad_render_to_file(teeth, config.TEETH_SCAD)
-	sh = '''"''' + str(config.OPENSCAD_EXE) + '''"''' + ' ' + str(config.TEETH_SCAD) + ' -o ' + str(config.TEETH_STL)
+	path = scad_render_to_file(teeth, TEETH_SCAD)
+	sh = '''"''' + str(config.OPENSCAD_EXE) + '''"''' + ' ' + str(TEETH_SCAD) + ' -o ' + str(TEETH_STL)
 	exit_code = subprocess.call(sh)
 	return
 
