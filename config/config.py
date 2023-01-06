@@ -11,5 +11,8 @@ class Config:
 	BOTTOM_TEETH_SCAD = config['OBJ']['BOTTOM_TEETH_SCAD']
 	BOTTOM_TEETH_STL = config['OBJ']['BOTTOM_TEETH_STL']
 
+	TONGUE_SCAD = config['OBJ']['TONGUE_SCAD']
+	TONGUE_STL = config['OBJ']['TONGUE_STL']
+
 	OPENSCAD_EXE = config['EXE']['OPENSCAD_EXE']
 

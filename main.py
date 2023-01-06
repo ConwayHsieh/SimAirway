@@ -35,18 +35,28 @@ def main():
 	tt5 = bt5
 	tt6 = -bt1
 
-	create_teeth(bt1, bt2, bt3, bt4, bt5, None) # create bottom teeth
+	# t = tongue
+	t1 = np.array([0, 1, 0])
+	t2 = np.array([0, 1, -2])
+	t3 = np.array([3, 2, 0])
+	t4 = np.array([0, 0, 0])
+
+
+	#create_teeth(bt1, bt2, bt3, bt4, bt5, None) # create bottom teeth
 	#create_teeth(tt1, tt2, tt3, tt4, tt5, tt6) # create top teeth
 	
-	mesh_bottom_teeth = o3d.io.read_triangle_mesh(config.BOTTOM_TEETH_STL)
+	#mesh_bottom_teeth = o3d.io.read_triangle_mesh(config.BOTTOM_TEETH_STL)
 	#mesh_top_teeth = o3d.io.read_triangle_mesh(config.TOP_TEETH_STL)
+
+	create_tongue(t1, t2, t3, t4)
+	mesh_tongue = o3d.io.read_triangle_mesh(config.TONGUE_STL)
 
 	mesh_sphere_origin = o3d.geometry.TriangleMesh.create_sphere(radius=0.2)
 	mesh_sphere_origin.paint_uniform_color([1, 0.706, 0])
 	mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5, 
 			origin=[-2, -2, -2])
 
-	o3d.visualization.draw_geometries([mesh_bottom_teeth, mesh_frame,
+	o3d.visualization.draw_geometries([mesh_tongue, mesh_frame,
 		mesh_sphere_origin])
 
 
@@ -155,9 +165,44 @@ def create_teeth(p1, p2, p3, p4, p5, p6=None):
 	'''
 
 	# render and save to SCAD file
-	path = scad_render_to_file(teeth, TEETH_SCAD)
-	sh = '''"''' + str(config.OPENSCAD_EXE) + '''"''' + ' ' + str(TEETH_SCAD) + ' -o ' + str(TEETH_STL)
-	exit_code = subprocess.call(sh)
+	create_obj(teeth, TEETH_SCAD, TEETH_STL)
+	return
+
+def create_tongue(p1, p2, p3, p4):
+	'''
+	p1 is front left top of tongue
+	p2 is front right top of tongue
+	p3 is back left top of tongue, directly behind p1, to calculate depth/angle
+	p4 is directly beneath p1, to calculate height
+	
+	Does NOT return an object
+	Instead, saves an STL file in location given in config to be called in main
+	'''
+	t_width = vg.euclidean_distance(p1, p2) # distance between left and right of tongue
+	t_height = vg.euclidean_distance(p1,p4) # how thick tongue is
+	t_depth = vg.euclidean_distance(p1,p3) # how far tongue extends into mouth
+
+	# create tongue based on parameters
+	# move p1 to [0,0,0]
+	tongue = translate([t_depth/2, -t_height/2, -t_width/2])(cube([t_depth, t_height, t_width], center=True))
+
+	# rotate
+	rotation_matrix = rotation_matrix_from_vectors([1,0,0], p3-p1)
+	rotation_angles = rotation_matrix_to_angles(rotation_matrix)
+	tongue = rotate(rotation_angles)(tongue)
+
+	# translate
+	tongue = translate(p1)(tongue)
+
+	# visulize p1, p2, p3, p4
+	'''
+	tongue += translate(p1)(sphere(r=0.25))
+	tongue += translate(p2)(sphere(r=0.25))
+	tongue += translate(p3)(sphere(r=0.25))
+	'''
+
+	# render and save to SCAD file
+	create_obj(tongue, config.TONGUE_SCAD, config.TONGUE_STL)
 	return
 
 def define_circle(A, B, C):
@@ -188,6 +233,15 @@ def rotation_matrix_from_vectors(vec1, vec2):
 
 def rotation_matrix_to_angles(rotation_matrix):
 	return Rotation.from_matrix(rotation_matrix).as_euler("xyz", degrees=True)
+
+def create_obj(obj, scad, stl):
+	'''
+	Call subprocess to use OPENSCAD to convert saved SCAD file into STL file
+	'''
+	path = scad_render_to_file(obj, scad)
+	sh = '''"''' + str(config.OPENSCAD_EXE) + '''"''' + ' ' + str(scad) + ' -o ' + str(stl)
+	exit_code = subprocess.call(sh)
+	return
 
 if __name__ == "__main__":
 	main()
