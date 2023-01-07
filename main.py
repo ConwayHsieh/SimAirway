@@ -48,15 +48,18 @@ def main():
 	#mesh_bottom_teeth = o3d.io.read_triangle_mesh(config.BOTTOM_TEETH_STL)
 	#mesh_top_teeth = o3d.io.read_triangle_mesh(config.TOP_TEETH_STL)
 
-	create_tongue(t1, t2, t3, t4)
-	mesh_tongue = o3d.io.read_triangle_mesh(config.TONGUE_STL)
+	#create_tongue(t1, t2, t3, t4)
+	#mesh_tongue = o3d.io.read_triangle_mesh(config.TONGUE_STL)
+
+	create_epiglottis(t1, t2, t3)
+	mesh_epiglottis = o3d.io.read_triangle_mesh(config.EPIGLOTTIS_STL)
 
 	mesh_sphere_origin = o3d.geometry.TriangleMesh.create_sphere(radius=0.2)
 	mesh_sphere_origin.paint_uniform_color([1, 0.706, 0])
 	mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5, 
 			origin=[-2, -2, -2])
 
-	o3d.visualization.draw_geometries([mesh_tongue, mesh_frame,
+	o3d.visualization.draw_geometries([mesh_epiglottis, mesh_frame,
 		mesh_sphere_origin])
 
 
@@ -170,6 +173,7 @@ def create_teeth(p1, p2, p3, p4, p5, p6=None):
 
 def create_tongue(p1, p2, p3, p4):
 	'''
+	Viewing from above, back to front viewpoint
 	p1 is front left top of tongue
 	p2 is front right top of tongue
 	p3 is back left top of tongue, directly behind p1, to calculate depth/angle
@@ -203,6 +207,50 @@ def create_tongue(p1, p2, p3, p4):
 
 	# render and save to SCAD file
 	create_obj(tongue, config.TONGUE_SCAD, config.TONGUE_STL)
+	return
+
+def create_epiglottis(p1, p2, p3, p4=None):
+	'''
+	Can use 4 points to, similar to create_tongue.
+	If only given 3 points, will instead assume thickness of object
+
+	viewing from above:
+	p1 is bottom left top of epiglottis
+	p2 is bottom right top of epiglottis
+	p3 is top left top of epiglottis, directly above p1, to calculate depth/angle
+	p4 is directly behind p1, to calculate thickness (if given)
+	
+	Does NOT return an object
+	Instead, saves an STL file in location given in config to be called in main
+	'''
+	e_width = vg.euclidean_distance(p1, p2) # distance between left and right of epiglottis
+	e_depth = vg.euclidean_distance(p1,p3) # how tall epiglottis is
+	if p4 is not None:
+		e_height = vg.euclidean_distance(p1,p4) # how thick epiglottis is
+	else: #assume thickness
+		e_height = max(e_width, e_depth)/50
+
+	# create tongue based on parameters
+	# move p1 to [0,0,0]
+	epiglottis = translate([e_depth/2, -e_height/2, -e_width/2])(cube([e_depth, e_height, e_width], center=True))
+
+	# rotate
+	rotation_matrix = rotation_matrix_from_vectors([1,0,0], p3-p1)
+	rotation_angles = rotation_matrix_to_angles(rotation_matrix)
+	epiglottis = rotate(rotation_angles)(epiglottis)
+
+	# translate
+	epiglottis = translate(p1)(epiglottis)
+
+	# visulize p1, p2, p3, p4
+	'''
+	epglottis += translate(p1)(sphere(r=0.25))
+	epiglottis += translate(p2)(sphere(r=0.25))
+	epiglottis += translate(p3)(sphere(r=0.25))
+	'''
+
+	# render and save to SCAD file
+	create_obj(epiglottis, config.EPIGLOTTIS_SCAD, config.EPIGLOTTIS_STL)
 	return
 
 def define_circle(A, B, C):

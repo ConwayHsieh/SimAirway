@@ -14,5 +14,8 @@ class Config:
 	TONGUE_SCAD = config['OBJ']['TONGUE_SCAD']
 	TONGUE_STL = config['OBJ']['TONGUE_STL']
 
+	EPIGLOTTIS_SCAD = config['OBJ']['EPIGLOTTIS_SCAD']
+	EPIGLOTTIS_STL = config['OBJ']['EPIGLOTTIS_STL']
+
 	OPENSCAD_EXE = config['EXE']['OPENSCAD_EXE']
 
