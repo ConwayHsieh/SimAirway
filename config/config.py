@@ -17,5 +17,10 @@ class Config:
 	EPIGLOTTIS_SCAD = config['OBJ']['EPIGLOTTIS_SCAD']
 	EPIGLOTTIS_STL = config['OBJ']['EPIGLOTTIS_STL']
 
-	OPENSCAD_EXE = config['EXE']['OPENSCAD_EXE']
+	VC_SCAD = config['OBJ']['EPIGLOTTIS_SCAD']
+	VC_STL = config['OBJ']['EPIGLOTTIS_STL']
 
+	LARYNX_SCAD = config['OBJ']['LARYNX_SCAD']
+	LARYNX_STL = config['OBJ']['LARYNX_STL']
+
+	OPENSCAD_EXE = config['EXE']['OPENSCAD_EXE']

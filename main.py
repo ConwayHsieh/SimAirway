@@ -51,17 +51,20 @@ def main():
 	#create_tongue(t1, t2, t3, t4)
 	#mesh_tongue = o3d.io.read_triangle_mesh(config.TONGUE_STL)
 
-	create_epiglottis(t1, t2, t3)
-	mesh_epiglottis = o3d.io.read_triangle_mesh(config.EPIGLOTTIS_STL)
+	#create_epiglottis(t1, t2, t3)
+	#mesh_epiglottis = o3d.io.read_triangle_mesh(config.EPIGLOTTIS_STL)
+
+	create_vc(t1, t4, t3)
+	mesh_VC = o3d.io.read_triangle_mesh(config.VC_STL)
 
 	mesh_sphere_origin = o3d.geometry.TriangleMesh.create_sphere(radius=0.2)
 	mesh_sphere_origin.paint_uniform_color([1, 0.706, 0])
 	mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5, 
 			origin=[-2, -2, -2])
 
-	o3d.visualization.draw_geometries([mesh_epiglottis, mesh_frame,
+	o3d.visualization.draw_geometries([mesh_VC, mesh_frame,
 		mesh_sphere_origin])
-
+	return
 
 def create_teeth(p1, p2, p3, p4, p5, p6=None):
 	'''
@@ -251,6 +254,24 @@ def create_epiglottis(p1, p2, p3, p4=None):
 
 	# render and save to SCAD file
 	create_obj(epiglottis, config.EPIGLOTTIS_SCAD, config.EPIGLOTTIS_STL)
+	return
+
+def create_vc(p1, p2, p3):
+	'''
+	p1, p2, p3: three points to determine triangle shape of triangular prism
+	thickness will be automatically assumed
+
+	Does NOT return an object
+	Instead, saves an STL file in location given in config to be called in main
+	'''
+	disp = np.array([0.001, 0.001 ,0.001]) #to handle thickness
+	vc = polyhedron(
+			points=[p1, p2, p1-disp, p2 - disp, p3-disp, p3], 
+            faces=[[0,1,2,3],[5,4,3,2],[0,4,5,1],[0,3,4],[5,2,1]]
+            )
+
+	# render and save to SCAD file
+	create_obj(vc, config.VC_SCAD, config.VC_STL)
 	return
 
 def define_circle(A, B, C):
