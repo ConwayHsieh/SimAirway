@@ -13,13 +13,6 @@ def main():
 	# test data here
 
 	# bt = bottom teeth
-	'''
-	bt1 = np.array([0, 1, 0])
-	bt2 = np.array([-1, 0, 0])
-	bt3 = np.array([1, 0, 0])
-	bt4 = np.array([0, 0.5, 0])
-	bt5 = np.array([0, 1, -1])
-	'''
 
 	bt1 = np.array([-1, 1, -1])
 	bt2 = np.array([-1,-1, 1])
@@ -41,6 +34,12 @@ def main():
 	t3 = np.array([3, 2, 0])
 	t4 = np.array([0, 0, 0])
 
+	# l = larynx
+	l1 = np.array([-1, 1, 1])
+	l2 = np.array([-1, 1, -1])
+	l3 = np.array([1, -1, 1])
+	l4 = np.array([-0.5, 0.5 , 1])
+	l5 = np.array([0, 0, 1])
 
 	#create_teeth(bt1, bt2, bt3, bt4, bt5, None) # create bottom teeth
 	#create_teeth(tt1, tt2, tt3, tt4, tt5, tt6) # create top teeth
@@ -54,15 +53,18 @@ def main():
 	#create_epiglottis(t1, t2, t3)
 	#mesh_epiglottis = o3d.io.read_triangle_mesh(config.EPIGLOTTIS_STL)
 
-	create_vc(t1, t4, t3)
-	mesh_VC = o3d.io.read_triangle_mesh(config.VC_STL)
+	#create_vc(t1, t4, t3)
+	#mesh_VC = o3d.io.read_triangle_mesh(config.VC_STL)
+
+	create_larynx(l1, l2, l3, l4, l5)
+	mesh_larynx = o3d.io.read_triangle_mesh(config.LARYNX_STL)
 
 	mesh_sphere_origin = o3d.geometry.TriangleMesh.create_sphere(radius=0.2)
 	mesh_sphere_origin.paint_uniform_color([1, 0.706, 0])
 	mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5, 
 			origin=[-2, -2, -2])
 
-	o3d.visualization.draw_geometries([mesh_VC, mesh_frame,
+	o3d.visualization.draw_geometries([mesh_larynx, mesh_frame,
 		mesh_sphere_origin])
 	return
 
@@ -272,6 +274,63 @@ def create_vc(p1, p2, p3):
 
 	# render and save to SCAD file
 	create_obj(vc, config.VC_SCAD, config.VC_STL)
+	return
+
+def create_larynx(p1,p2,p3, p4, p5):
+	'''
+	# trachea points
+	p1, p2: define top of cylinder, to calulate diameter of trachea (p1 front, p2 back, looking at opening)
+	p3: define bottom of cylinder, to determine height of trachea; directly beneath p1
+	# opening points
+	p4, p5: define top, bottom of circular opening, to determine diameter; 
+		should be on the straight line between p1, p3. ASSUME: perfectly circular opening
+	
+	Does NOT return an object
+	Instead, saves an STL file in location given in config to be called in main
+	'''
+	# make trachea object (cylinder)
+	# assume extremely thin hollow cylinder
+	
+	# define constants
+	segments = 120
+	diff = 0.1
+	trachea_radius = vg.euclidean_distance(p1, p2)/2
+	trachea_height = vg.euclidean_distance(p1, p3)
+
+	# create hollow cylinder
+	trachea = (cylinder(r=trachea_radius, h=trachea_height, center=True, segments=segments) -
+			cylinder(r=trachea_radius-diff, h=trachea_height, center=True, segments=segments))
+	
+	# rotate cylinder to vertical
+	trachea_rotation_matrix = rotation_matrix_from_vectors([0,0,1], [0,1,0])
+	trachea_rotation_angles = rotation_matrix_to_angles(trachea_rotation_matrix)
+	trachea = rotate(trachea_rotation_angles)(trachea)
+	
+	# translate p1 to 0,0,0
+	trachea = translate([0, -trachea_height/2, -trachea_radius])(trachea)
+
+	# make opening, using cylinder object to subtract from trachea object
+	# TODO
+	opening_radius = vg.euclidean_distance(p4,p5)/2
+	opening = cylinder(r=opening_radius, h=trachea_radius, center=True, segments=segments)
+	dist = vg.euclidean_distance(p1,p4)
+	opening = translate([0,-(dist+opening_radius),0])(opening)
+
+	# create the hole
+	larynx = trachea - opening
+
+	# rotate larynx object to final angle
+	larynx = translate([0,trachea_height,0])(larynx)
+	larynx_rotation_matrix = rotation_matrix_from_vectors([0,1,0], p1-p3)
+	larynx_rotation_angles = rotation_matrix_to_angles(larynx_rotation_matrix)
+	larynx = rotate(larynx_rotation_angles)(larynx)
+
+	# translate larynx object
+	# 0,0,0 is currently p3
+	larynx = translate(p3)(larynx)
+
+	# render and save to SCAD file
+	create_obj(larynx, config.LARYNX_SCAD, config.LARYNX_STL)
 	return
 
 def define_circle(A, B, C):
