@@ -50,22 +50,35 @@ def main():
 	#create_tongue(t1, t2, t3, t4)
 	#mesh_tongue = o3d.io.read_triangle_mesh(config.TONGUE_STL)
 
-	#create_epiglottis(t1, t2, t3)
-	#mesh_epiglottis = o3d.io.read_triangle_mesh(config.EPIGLOTTIS_STL)
+	create_epiglottis(t1, t2, t3)
+	mesh_epiglottis = o3d.io.read_triangle_mesh(config.EPIGLOTTIS_STL)
 
-	#create_vc(t1, t4, t3)
-	#mesh_VC = o3d.io.read_triangle_mesh(config.VC_STL)
+	create_vc(t1, t4, t3)
+	mesh_vc = o3d.io.read_triangle_mesh(config.VC_STL)
 
 	create_larynx(l1, l2, l3, l4, l5)
 	mesh_larynx = o3d.io.read_triangle_mesh(config.LARYNX_STL)
 
 	mesh_sphere_origin = o3d.geometry.TriangleMesh.create_sphere(radius=0.2)
-	mesh_sphere_origin.paint_uniform_color([1, 0.706, 0])
 	mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5, 
 			origin=[-2, -2, -2])
 
-	o3d.visualization.draw_geometries([mesh_larynx, mesh_frame,
-		mesh_sphere_origin])
+	#o3d.visualization.draw_geometries([mesh_vc, mesh_larynx, mesh_frame,
+	#	mesh_sphere_origin])
+	meshlist = [mesh_larynx, mesh_epiglottis, mesh_frame, mesh_sphere_origin]
+
+	for m in meshlist:
+		if m == mesh_frame:
+			continue
+		elif m == mesh_sphere_origin:
+			m.paint_uniform_color([1, 0.706, 0])
+			continue
+
+		m.compute_vertex_normals()
+		m.paint_uniform_color([np.random.random(1)[0], np.random.random(1)[0], np.random.random(1)[0]])
+
+	o3d.visualization.draw_geometries(meshlist)
+
 	return
 
 def create_teeth(p1, p2, p3, p4, p5, p6=None):
